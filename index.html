@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>WebMCP Stage 0 — search_services</title>
+  <title>WebMCP Stage 1 — availability</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main class="page">
-    <p class="eyebrow">WebMCP Challenge · этап 0</p>
+    <p class="eyebrow">WebMCP Challenge · этап 1</p>
     <h1>Синтетический каталог услуг</h1>
-    <p class="intro">Один read-only инструмент: <code>search_services</code>. Данные существуют только для этого демо.</p>
+    <p class="intro">Два read-only инструмента: <code>search_services</code> и <code>check_availability</code>. Данные существуют только для этого демо.</p>
 
     <section class="panel" aria-labelledby="status-heading">
       <h2 id="status-heading">Статус WebMCP</h2>
@@ -28,6 +28,21 @@
       <button id="verify-tool" type="button" disabled>Проверить search_services через WebMCP</button>
       <p>Реальные выполнения через WebMCP: <strong id="real-execution-count">0</strong></p>
       <pre id="tool-result" aria-live="polite">Ожидание проверки.</pre>
+    </section>
+
+    <section class="panel" aria-labelledby="availability-heading">
+      <h2 id="availability-heading">Проверка доступности</h2>
+      <p>Кнопка получает <code>check_availability</code> через <code>getTools()</code> и вызывает его через <code>executeTool()</code> для синтетической услуги и фиксированной будущей даты.</p>
+      <button id="verify-availability" type="button" disabled>Проверить check_availability через WebMCP</button>
+      <p>Реальные выполнения check_availability через WebMCP: <strong id="availability-execution-count">0</strong></p>
+      <pre id="availability-result" aria-live="polite">Ожидание проверки.</pre>
+    </section>
+    <section class="panel" aria-labelledby="unavailable-heading">
+      <h2 id="unavailable-heading">Проверка недоступной услуги</h2>
+      <p>Кнопка получает <code>check_availability</code> через <code>getTools()</code> и вызывает его через <code>executeTool()</code>. Успех проверки — контрактная ошибка <code>SERVICE_UNAVAILABLE</code>.</p>
+      <button id="verify-unavailable-service" type="button" disabled>Проверить недоступную услугу</button>
+      <p>Подтверждённые ошибочные WebMCP-вызовы: <strong id="unavailable-execution-count">0</strong></p>
+      <pre id="unavailable-result" aria-live="polite">Ожидание проверки.</pre>
     </section>
   </main>
   <script src="app.js"></script>
