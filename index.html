@@ -1,57 +1,85 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>WebMCP Stage 1 — availability</title>
+  <title>Safe Agent-Assisted Booking — WebMCP</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main class="page">
-    <p class="eyebrow">WebMCP Challenge · этап 1</p>
-    <h1>Синтетический каталог услуг</h1>
-    <p class="intro">Два read-only инструмента: <code>search_services</code> и <code>check_availability</code>. Данные существуют только для этого демо.</p>
+    <header class="hero">
+      <p class="eyebrow">WebMCP Challenge · synthetic demo</p>
+      <h1>Safe Agent-Assisted Booking</h1>
+      <p class="intro">Агент находит услугу и время, человек подтверждает запись.</p>
+      <p class="hero-detail">A small booking flow where structured WebMCP tools find options and the person keeps control of the final write action.</p>
+    </header>
 
-    <section class="panel" aria-labelledby="status-heading">
-      <h2 id="status-heading">Статус WebMCP</h2>
-      <p id="webmcp-status" data-status="pending" role="status">Проверяем поддержку WebMCP…</p>
-    </section>
+    <section id="booking-journey" class="panel journey" aria-labelledby="journey-heading">
+      <h2 id="journey-heading">Book a synthetic appointment / Записаться на демо</h2>
+      <p id="journey-status" data-status="pending" role="status">Start by finding the available synthetic services.</p>
+      <button id="start-journey" type="button" disabled>Find available services / Найти услуги</button>
 
-    <section class="panel" aria-labelledby="catalog-heading">
-      <h2 id="catalog-heading">Каталог</h2>
-      <div id="catalog" class="catalog" aria-live="polite"></div>
-    </section>
-
-    <section class="panel" aria-labelledby="verify-heading">
-      <h2 id="verify-heading">Проверка реального вызова</h2>
-      <p>Кнопка получает зарегистрированный инструмент через <code>getTools()</code> и вызывает его через <code>executeTool()</code>. Внутренняя функция каталога здесь не вызывается напрямую.</p>
-      <button id="verify-tool" type="button" disabled>Проверить search_services через WebMCP</button>
-      <p>Реальные выполнения через WebMCP: <strong id="real-execution-count">0</strong></p>
-      <pre id="tool-result" aria-live="polite">Ожидание проверки.</pre>
-    </section>
-
-    <section class="panel" aria-labelledby="availability-heading">
-      <h2 id="availability-heading">Проверка доступности</h2>
-      <p>Кнопка получает <code>check_availability</code> через <code>getTools()</code> и вызывает его через <code>executeTool()</code> для синтетической услуги и фиксированной будущей даты.</p>
-      <button id="verify-availability" type="button" disabled>Проверить check_availability через WebMCP</button>
-      <p>Реальные выполнения check_availability через WebMCP: <strong id="availability-execution-count">0</strong></p>
-      <pre id="availability-result" aria-live="polite">Ожидание проверки.</pre>
-    </section>
-    <section class="panel" aria-labelledby="unavailable-heading">
-      <h2 id="unavailable-heading">Проверка недоступной услуги</h2>
-      <p>Кнопка получает <code>check_availability</code> через <code>getTools()</code> и вызывает его через <code>executeTool()</code>. Успех проверки — контрактная ошибка <code>SERVICE_UNAVAILABLE</code>.</p>
-      <button id="verify-unavailable-service" type="button" disabled>Проверить недоступную услугу</button>
-      <p>Подтверждённые ошибочные WebMCP-вызовы: <strong id="unavailable-execution-count">0</strong></p>
-      <pre id="unavailable-result" aria-live="polite">Ожидание проверки.</pre>
+      <div class="journey-step" aria-live="polite">
+        <h3>1. Choose a service / Выберите услугу</h3>
+        <div id="journey-services" class="choice-grid"></div>
+      </div>
+      <div class="journey-step" aria-live="polite">
+        <h3>2. Choose a time / Выберите время</h3>
+        <div id="journey-slots" class="choice-grid"></div>
+      </div>
+      <div id="journey-summary" class="journey-summary" aria-live="polite">Choose a service and a time to review your appointment.</div>
+      <button id="journey-confirm" type="button" disabled>Confirm booking / Подтвердить запись</button>
+      <p>Confirmed synthetic bookings: <strong id="journey-success-count">0</strong></p>
+      <div id="journey-result" class="booking-card" aria-live="polite">No booking has been created.</div>
     </section>
 
-    <section class="panel" aria-labelledby="booking-heading">
-      <h2 id="booking-heading">Создание синтетической записи</h2>
-      <p>После понятного подтверждения человека UI выдаёт одноразовый <code>confirmation_id</code>, затем находит <code>create_booking</code> через <code>getTools()</code> и вызывает его только через <code>executeTool()</code>.</p>
-      <button id="create-booking" type="button" disabled>Создать синтетическую запись</button>
-      <p>Подтверждённые синтетические записи: <strong id="confirmed-booking-count">0</strong></p>
-      <pre id="booking-result" aria-live="polite">Ожидание действия человека.</pre>
-    </section>
+    <details class="technical-proof">
+      <summary>WebMCP technical proof / Техническая проверка</summary>
+      <div class="technical-proof-content">
+        <section class="panel" aria-labelledby="status-heading">
+          <h2 id="status-heading">WebMCP status</h2>
+          <p id="webmcp-status" data-status="pending" role="status">Checking WebMCP support…</p>
+        </section>
+
+        <section class="panel" aria-labelledby="catalog-heading">
+          <h2 id="catalog-heading">Synthetic catalog</h2>
+          <div id="catalog" class="catalog" aria-live="polite"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="verify-heading">
+          <h2 id="verify-heading">search_services proof</h2>
+          <p>This diagnostic button discovers the registered tool with <code>getTools()</code> and calls it with <code>executeTool()</code>.</p>
+          <button id="verify-tool" type="button" disabled>Verify search_services through WebMCP</button>
+          <p>Verified WebMCP calls: <strong id="real-execution-count">0</strong></p>
+          <pre id="tool-result" aria-live="polite">Waiting for verification.</pre>
+        </section>
+
+        <section class="panel" aria-labelledby="availability-heading">
+          <h2 id="availability-heading">check_availability proof</h2>
+          <p>This diagnostic button calls the existing availability tool through the real WebMCP boundary.</p>
+          <button id="verify-availability" type="button" disabled>Verify check_availability through WebMCP</button>
+          <p>Verified availability calls: <strong id="availability-execution-count">0</strong></p>
+          <pre id="availability-result" aria-live="polite">Waiting for verification.</pre>
+        </section>
+
+        <section class="panel" aria-labelledby="unavailable-heading">
+          <h2 id="unavailable-heading">Unavailable-service proof</h2>
+          <p>The expected result is the contract error <code>SERVICE_UNAVAILABLE</code>.</p>
+          <button id="verify-unavailable-service" type="button" disabled>Verify unavailable service</button>
+          <p>Verified error calls: <strong id="unavailable-execution-count">0</strong></p>
+          <pre id="unavailable-result" aria-live="polite">Waiting for verification.</pre>
+        </section>
+
+        <section class="panel" aria-labelledby="booking-heading">
+          <h2 id="booking-heading">create_booking proof</h2>
+          <p>This separate diagnostic path keeps the original fixed synthetic write check and raw JSON evidence.</p>
+          <button id="create-booking" type="button" disabled>Create synthetic booking</button>
+          <p>Confirmed synthetic bookings: <strong id="confirmed-booking-count">0</strong></p>
+          <pre id="booking-result" aria-live="polite">Waiting for a human action.</pre>
+        </section>
+      </div>
+    </details>
   </main>
   <script src="app.js"></script>
 </body>

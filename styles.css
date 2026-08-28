@@ -5,22 +5,43 @@
   color: #172033;
 }
 
+* { box-sizing: border-box; }
 body { margin: 0; }
-
 .page { max-width: 760px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+.hero { margin-bottom: 1rem; }
 .eyebrow { color: #475569; font-size: .85rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-h1 { margin-bottom: .4rem; }
-.intro { color: #475569; }
+h1 { margin: 0 0 .4rem; }
+.intro { color: #172033; font-size: 1.15rem; font-weight: 700; margin: 0; }
+.hero-detail { color: #475569; margin: .6rem 0 0; }
 .panel { background: #fff; border: 1px solid #dbe3ef; border-radius: 12px; margin-top: 1rem; padding: 1.25rem; box-shadow: 0 2px 8px #1720330d; }
 h2 { margin-top: 0; font-size: 1.15rem; }
-.catalog { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+h3 { font-size: 1rem; margin: 0 0 .65rem; }
+.catalog, .choice-grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
 .service { border: 1px solid #dbe3ef; border-radius: 8px; padding: .85rem; }
 .service h3 { margin: 0 0 .5rem; font-size: 1rem; }
 .service p { margin: .3rem 0; font-size: .9rem; }
 .available { color: #166534; font-weight: 700; }
 button { background: #1d4ed8; border: 0; border-radius: 7px; color: #fff; cursor: pointer; font: inherit; font-weight: 700; padding: .7rem 1rem; }
 button:disabled { background: #94a3b8; cursor: not-allowed; }
+.choice-button { background: #e8efff; border: 1px solid #bdd0ff; color: #173a91; text-align: left; width: 100%; }
+.choice-button:hover { background: #dce8ff; }
+.journey { border-color: #a7c0ff; }
+.journey-step { margin-top: 1.25rem; }
+.journey-summary, .booking-card { background: #f8fafc; border-left: 4px solid #1d4ed8; border-radius: 6px; margin: 1rem 0; overflow-wrap: anywhere; padding: .85rem; }
+.booking-card { border-left-color: #166534; }
+.technical-proof { margin-top: 1.25rem; }
+.technical-proof > summary { color: #334155; cursor: pointer; font-weight: 700; padding: .75rem 0; }
+.technical-proof-content { border-top: 1px solid #dbe3ef; padding-top: .1rem; }
 pre { background: #0f172a; border-radius: 8px; color: #dbeafe; min-height: 3rem; overflow: auto; padding: 1rem; white-space: pre-wrap; }
 [data-status="ready"] { color: #166534; font-weight: 700; }
 [data-status="error"] { color: #b91c1c; font-weight: 700; }
 code { font-family: ui-monospace, monospace; }
+
+@media (max-width: 320px) {
+  .page { padding: 1rem .75rem 2rem; }
+  h1 { font-size: 1.65rem; }
+  .panel { padding: 1rem; }
+  .catalog, .choice-grid { grid-template-columns: minmax(0, 1fr); }
+  button { min-height: 2.75rem; padding: .65rem .75rem; width: 100%; }
+  pre { font-size: .78rem; padding: .75rem; }
+}

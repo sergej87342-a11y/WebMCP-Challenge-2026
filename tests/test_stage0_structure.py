@@ -60,6 +60,28 @@ class Stage0StructureTests(unittest.TestCase):
         self.assertIn('data-status="pending"', self.index)
         self.assertNotIn("fallback", self.app.lower())
 
+    def test_product_first_journey_precedes_collapsed_technical_proof(self) -> None:
+        self.assertIn("Safe Agent-Assisted Booking", self.index)
+        self.assertIn("Агент находит услугу и время, человек подтверждает запись.", self.index)
+        self.assertIn('id="booking-journey"', self.index)
+        self.assertIn('id="start-journey"', self.index)
+        self.assertIn("WebMCP technical proof / Техническая проверка", self.index)
+        self.assertLess(self.index.index('id="booking-journey"'), self.index.index("WebMCP technical proof / Техническая проверка"))
+        self.assertIn("<details", self.index)
+
+    def test_technical_proof_controls_keep_their_ids(self) -> None:
+        for element_id in (
+            "verify-tool",
+            "verify-availability",
+            "verify-unavailable-service",
+            "create-booking",
+            "real-execution-count",
+            "availability-execution-count",
+            "unavailable-execution-count",
+            "confirmed-booking-count",
+        ):
+            self.assertIn(f'id="{element_id}"', self.index)
+
 
 if __name__ == "__main__":
     unittest.main()

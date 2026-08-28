@@ -65,6 +65,14 @@ const unavailableExecutionCountElement = document.querySelector("#unavailable-ex
 const createBookingButton = document.querySelector("#create-booking");
 const bookingResultElement = document.querySelector("#booking-result");
 const confirmedBookingCountElement = document.querySelector("#confirmed-booking-count");
+const journeyStatusElement = document.querySelector("#journey-status");
+const startJourneyButton = document.querySelector("#start-journey");
+const journeyServicesElement = document.querySelector("#journey-services");
+const journeySlotsElement = document.querySelector("#journey-slots");
+const journeySummaryElement = document.querySelector("#journey-summary");
+const journeyConfirmButton = document.querySelector("#journey-confirm");
+const journeySuccessCountElement = document.querySelector("#journey-success-count");
+const journeyResultElement = document.querySelector("#journey-result");
 let realExecutionCount = 0;
 let availabilityExecutionCount = 0;
 let unavailableExecutionCount = 0;
@@ -76,6 +84,13 @@ const bookingsBySlot = new Map();
 const idempotencyByRequestId = new Map();
 const confirmationsById = new Map();
 const testHooks = globalThis.__webmcpTestHooks ?? {};
+const journeyState = {
+  services: [],
+  selectedService: null,
+  slots: [],
+  selectedSlot: null,
+  successCount: 0,
+};
 
 function setStatus(message, status) {
   statusElement.textContent = message;
@@ -397,12 +412,140 @@ async function registerTools() {
     verifyAvailabilityButton.disabled = false;
     verifyUnavailableButton.disabled = false;
     createBookingButton.disabled = false;
+    startJourneyButton.disabled = false;
     setStatus("WebMCP доступен: три synthetic-инструмента зарегистрированы и готовы к проверке.", "ready");
   } catch (error) {
     setStatus(`WebMCP недоступен для регистрации: ${error.message}`, "error");
     resultElement.textContent = "Инструменты не зарегистрированы; проверка не выполнялась.";
     availabilityResultElement.textContent = "Инструменты не зарегистрированы; проверка не выполнялась.";
     unavailableResultElement.textContent = "Инструменты не зарегистрированы; проверка не выполнялась.";
+  }
+}
+
+async function startBookingJourney() {
+  startJourneyButton.disabled = true;
+  journeyStatusElement.textContent = "Finding available synthetic services through WebMCP…";
+  try {
+    const tools = await document.modelContext.getTools();
+    const tool = tools.find(({ name }) => name === "search_services");
+    if (!tool) {
+      throw new Error("search_services is not registered");
+    }
+    const result = JSON.parse(await document.modelContext.executeTool(tool, JSON.stringify({})));
+    if (!Array.isArray(result.services) || result.services.length === 0) {
+      throw new Error("No available synthetic services were returned");
+    }
+    journeyState.services = result.services;
+    journeyState.selectedService = null;
+    journeyState.slots = [];
+    journeyState.selectedSlot = null;
+    journeyServicesElement.replaceChildren(...result.services.map((service) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "choice-button";
+      button.textContent = `${service.name} · ${service.duration_minutes} min`;
+      button.addEventListener("click", () => selectJourneyService(service));
+      return button;
+    }));
+    journeySlotsElement.replaceChildren();
+    journeySummaryElement.textContent = "Choose one of the returned services to find its available times.";
+    journeyConfirmButton.disabled = true;
+    journeyStatusElement.textContent = "Choose a returned service / Выберите услугу из результата.";
+  } catch (error) {
+    journeyStatusElement.textContent = `Could not find services through WebMCP: ${error.message}`;
+  } finally {
+    startJourneyButton.disabled = false;
+  }
+}
+
+async function selectJourneyService(service) {
+  journeyState.selectedService = service;
+  journeyState.selectedSlot = null;
+  journeyConfirmButton.disabled = true;
+  journeySlotsElement.replaceChildren();
+  journeyStatusElement.textContent = `Finding times for ${service.name} through WebMCP…`;
+  try {
+    const tools = await document.modelContext.getTools();
+    const tool = tools.find(({ name }) => name === "check_availability");
+    if (!tool) {
+      throw new Error("check_availability is not registered");
+    }
+    const input = {
+      service_id: service.service_id,
+      date: "2099-05-01",
+      timezone: JERUSALEM_TIMEZONE,
+    };
+    const result = JSON.parse(await document.modelContext.executeTool(tool, JSON.stringify(input)));
+    if (!result.ok || !Array.isArray(result.data?.slots)) {
+      throw new Error(result.error?.message ?? "No slots were returned");
+    }
+    journeyState.slots = result.data.slots;
+    journeySlotsElement.replaceChildren(...result.data.slots.map((slot) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "choice-button";
+      button.textContent = `${slot.local_time} · ${slot.timezone}`;
+      button.addEventListener("click", () => selectJourneySlot(slot));
+      return button;
+    }));
+    journeySummaryElement.textContent = `${service.name} selected. Choose one of the returned times.`;
+    journeyStatusElement.textContent = "Choose a returned time / Выберите время из результата.";
+  } catch (error) {
+    journeyStatusElement.textContent = `Could not find times through WebMCP: ${error.message}`;
+  }
+}
+
+function selectJourneySlot(slot) {
+  journeyState.selectedSlot = slot;
+  journeyConfirmButton.disabled = false;
+  journeySummaryElement.textContent = `Ready to book: ${journeyState.selectedService.name} at ${slot.local_time} (${slot.timezone}). A person must confirm the final booking.`;
+  journeyStatusElement.textContent = "Review the appointment, then confirm it yourself / Проверьте и подтвердите запись.";
+}
+
+async function confirmJourneyBooking() {
+  if (!journeyState.selectedService || !journeyState.selectedSlot) {
+    return;
+  }
+  const approved = window.confirm(`Create a synthetic booking for ${journeyState.selectedService.name} at ${journeyState.selectedSlot.local_time}?`);
+  if (!approved) {
+    journeyStatusElement.textContent = "Booking cancelled by the person. No confirmation was created and WebMCP did not create a booking.";
+    return;
+  }
+
+  journeyConfirmButton.disabled = true;
+  journeyStatusElement.textContent = "Creating the confirmed synthetic booking through WebMCP…";
+  try {
+    const request = {
+      service_id: journeyState.selectedService.service_id,
+      slot_start: journeyState.selectedSlot.slot_start,
+      timezone: journeyState.selectedSlot.timezone,
+      customer_label: "demo-customer-1",
+      request_id: nextUuidV4(),
+    };
+    request.confirmation_id = issueConfirmation(request);
+    const tools = await document.modelContext.getTools();
+    const tool = tools.find(({ name }) => name === "create_booking");
+    if (!tool) {
+      throw new Error("create_booking is not registered");
+    }
+    const result = JSON.parse(await document.modelContext.executeTool(tool, JSON.stringify(request)));
+    if (result.ok) {
+      journeyState.successCount += 1;
+      journeySuccessCountElement.textContent = String(journeyState.successCount);
+      journeyResultElement.textContent = `Confirmed: ${result.data.service.name} at ${result.data.local_time}. Booking ID: ${result.data.booking_id}.`;
+      journeyStatusElement.textContent = "Booking confirmed. The person approved the final write action.";
+      return;
+    }
+    if (result.error?.code === "SLOT_UNAVAILABLE") {
+      journeyStatusElement.textContent = "This time was just taken. Choose another available slot.";
+      journeyResultElement.textContent = "The booking was not created. No success counter was added.";
+      return;
+    }
+    journeyStatusElement.textContent = `Booking was not created: ${result.error?.message ?? "Unknown contract error"}`;
+  } catch (error) {
+    journeyStatusElement.textContent = `Could not create booking through WebMCP: ${error.message}`;
+  } finally {
+    journeyConfirmButton.disabled = !journeyState.selectedSlot;
   }
 }
 
@@ -533,6 +676,8 @@ async function createSyntheticBookingFromUi() {
 }
 
 renderCatalog();
+startJourneyButton.addEventListener("click", startBookingJourney);
+journeyConfirmButton.addEventListener("click", confirmJourneyBooking);
 verifyButton.addEventListener("click", verifyTool);
 verifyAvailabilityButton.addEventListener("click", verifyAvailabilityTool);
 verifyUnavailableButton.addEventListener("click", verifyUnavailableServiceTool);
