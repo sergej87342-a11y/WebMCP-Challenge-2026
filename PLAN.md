@@ -12,8 +12,22 @@
 - Описать строгие входы и выходы трёх инструментов.
 - Добавить тестовый каталог услуг.
 - Добавить тестовое расписание и проверку доступности.
-- Добавить тестовое создание записи с явным подтверждением.
-- Покрыть контракты и ошибки тестами.
+- Добавить тестовое создание записи с явным UI-подтверждением через одноразовый `confirmation_id`.
+- Использовать только module-level in-memory storage одной страницы: UUID v4 booking, idempotency, атомарная защита слота в пределах страницы и намеренный reset после reload.
+- До реализации подготовить и согласовать следующий точный test plan; код тестов пока не писать:
+  1. Проверить регистрацию `create_booking`: annotations ровно `readOnlyHint: false` и `untrustedContentHint: false`; `inputSchema` имеет шесть required полей и `additionalProperties: false`.
+  2. Проверить schema/handler `INVALID_INPUT` для каждого отсутствующего поля, одного лишнего поля, неверного типа, пустого `service_id`, неверного ISO 8601 offset, timezone вне `Asia/Jerusalem`, customer label вне закрытого enum и каждого некорректного UUID v4.
+  3. Создать в UI подтверждение после явного действия человека и проверить, что `confirmation_id` UUID v4 связан именно с нормализованными `service_id`, `slot_start`, `timezone`, `customer_label`.
+  4. С валидным новым `request_id` и связанным confirmation проверить один успех: UUID v4 `booking_id`, lock слота, сохранённый success для idempotency и погашенный confirmation.
+  5. Повторить тот же `request_id` и тот же нормализованный payload: получить байт-в-байт сохранённый success с тем же `booking_id`, без нового booking и без новой проверки/расходования confirmation.
+  6. Повторить тот же `request_id` с иным нормализованным payload: `DUPLICATE_REQUEST`; приоритет этого кода выше confirmation, а storage не меняется.
+  7. С новым `request_id` использовать отсутствующий, погашенный либо привязанный к чужому payload `confirmation_id`: `CONFIRMATION_REQUIRED`, без booking, lock, idempotency record и погашения другого confirmation.
+  8. Проверить `SERVICE_NOT_FOUND`, `SERVICE_UNAVAILABLE`, `SLOT_IN_PAST`, недопустимый слот и уже закреплённый слот (`SLOT_UNAVAILABLE`): каждый неуспех не меняет storage и не погашает confirmation.
+  9. Проверить порядок ошибок на комбинированных входах: сначала `INVALID_INPUT`, затем idempotent replay/`DUPLICATE_REQUEST`, затем `CONFIRMATION_REQUIRED`, затем service, past slot и availability.
+  10. Проверить два последовательных запроса в одной странице на один слот с разными request/confirmation: ровно один успех, второй `SLOT_UNAVAILABLE`; критическая секция не содержит `await` между slot check, booking write, idempotency save и confirmation consumption.
+  11. Проверить WebMCP boundary `registerTool → getTools → executeTool(JSON string) → handler(object) → JSON result` для успеха и всех стабильных error codes.
+  12. Reload страницы очищает только module-level synthetic state. Отдельно зафиксировать, что test suite не утверждает атомарность между вкладками или процессами.
+- Не заявлять межвкладочную или межпроцессную атомарность.
 
 ## Этап 2 — пользовательский сценарий
 
