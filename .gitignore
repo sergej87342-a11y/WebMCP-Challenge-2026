@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+node_modules/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.log
+*.sqlite
+*.sqlite3
+*.db
+runtime/
+dist/
+build/
+.DS_Store
