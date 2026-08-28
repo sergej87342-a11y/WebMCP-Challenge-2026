@@ -44,6 +44,14 @@
       <p>Подтверждённые ошибочные WebMCP-вызовы: <strong id="unavailable-execution-count">0</strong></p>
       <pre id="unavailable-result" aria-live="polite">Ожидание проверки.</pre>
     </section>
+
+    <section class="panel" aria-labelledby="booking-heading">
+      <h2 id="booking-heading">Создание синтетической записи</h2>
+      <p>После понятного подтверждения человека UI выдаёт одноразовый <code>confirmation_id</code>, затем находит <code>create_booking</code> через <code>getTools()</code> и вызывает его только через <code>executeTool()</code>.</p>
+      <button id="create-booking" type="button" disabled>Создать синтетическую запись</button>
+      <p>Подтверждённые синтетические записи: <strong id="confirmed-booking-count">0</strong></p>
+      <pre id="booking-result" aria-live="polite">Ожидание действия человека.</pre>
+    </section>
   </main>
   <script src="app.js"></script>
 </body>

@@ -62,9 +62,20 @@ const availabilityExecutionCountElement = document.querySelector("#availability-
 const verifyUnavailableButton = document.querySelector("#verify-unavailable-service");
 const unavailableResultElement = document.querySelector("#unavailable-result");
 const unavailableExecutionCountElement = document.querySelector("#unavailable-execution-count");
+const createBookingButton = document.querySelector("#create-booking");
+const bookingResultElement = document.querySelector("#booking-result");
+const confirmedBookingCountElement = document.querySelector("#confirmed-booking-count");
 let realExecutionCount = 0;
 let availabilityExecutionCount = 0;
 let unavailableExecutionCount = 0;
+let confirmedBookingCount = 0;
+
+// These Maps are deliberately module-level state for this single page only.
+// Reloading the page creates new Maps; no cross-tab/process guarantee is made.
+const bookingsBySlot = new Map();
+const idempotencyByRequestId = new Map();
+const confirmationsById = new Map();
+const testHooks = globalThis.__webmcpTestHooks ?? {};
 
 function setStatus(message, status) {
   statusElement.textContent = message;
@@ -190,6 +201,145 @@ async function checkAvailability(input, today = jerusalemToday()) {
   });
 }
 
+const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const SLOT_START_PATTERN = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?[+-](?:0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
+const CREATE_BOOKING_KEYS = ["service_id", "slot_start", "timezone", "customer_label", "confirmation_id", "request_id"];
+
+function currentInstant() {
+  return testHooks.now ? testHooks.now() : new Date();
+}
+
+function nextUuidV4() {
+  if (testHooks.uuid) {
+    return testHooks.uuid();
+  }
+  return crypto.randomUUID();
+}
+
+function parseCreateBookingInput(input) {
+  if (input === null || Array.isArray(input) || typeof input !== "object") {
+    return { error: errorResponse("INVALID_INPUT", "Вход должен быть JSON-объектом") };
+  }
+  const keys = Object.keys(input);
+  if (keys.length !== CREATE_BOOKING_KEYS.length || keys.some((key) => !CREATE_BOOKING_KEYS.includes(key))) {
+    return { error: errorResponse("INVALID_INPUT", "Допускаются только шесть полей create_booking") };
+  }
+  if (typeof input.service_id !== "string" || input.service_id.trim() === "") {
+    return { error: errorResponse("INVALID_INPUT", "service_id должен быть непустой строкой") };
+  }
+  if (typeof input.slot_start !== "string" || !SLOT_START_PATTERN.test(input.slot_start)
+    || !isValidCalendarDate(input.slot_start.slice(0, 10)) || Number.isNaN(Date.parse(input.slot_start))) {
+    return { error: errorResponse("INVALID_INPUT", "slot_start должен быть ISO 8601 со смещением") };
+  }
+  if (input.timezone !== JERUSALEM_TIMEZONE) {
+    return { error: errorResponse("INVALID_INPUT", "timezone должен быть строго равен Asia/Jerusalem") };
+  }
+  if (input.customer_label !== "demo-customer-1") {
+    return { error: errorResponse("INVALID_INPUT", "customer_label должен быть demo-customer-1") };
+  }
+  if (typeof input.confirmation_id !== "string" || !UUID_V4_PATTERN.test(input.confirmation_id)) {
+    return { error: errorResponse("INVALID_INPUT", "confirmation_id должен быть каноническим UUID v4") };
+  }
+  if (typeof input.request_id !== "string" || !UUID_V4_PATTERN.test(input.request_id)) {
+    return { error: errorResponse("INVALID_INPUT", "request_id должен быть каноническим UUID v4") };
+  }
+  return { input };
+}
+
+function normalizedBookingPayload(input) {
+  return JSON.stringify({
+    service_id: input.service_id,
+    slot_start: input.slot_start,
+    timezone: input.timezone,
+    customer_label: input.customer_label,
+  });
+}
+
+function issueConfirmation(input) {
+  const confirmationId = input.confirmation_id ?? nextUuidV4();
+  const parsed = parseCreateBookingInput({ ...input, confirmation_id: confirmationId });
+  if (parsed.error) {
+    throw new Error("UI может выдать confirmation_id только для валидного synthetic payload");
+  }
+  const normalizedPayload = normalizedBookingPayload(parsed.input);
+  confirmationsById.set(confirmationId, { normalizedPayload, consumed: false });
+  return confirmationId;
+}
+
+function createBooking(input) {
+  const parsed = parseCreateBookingInput(input);
+  if (parsed.error) {
+    return JSON.stringify(parsed.error);
+  }
+
+  const normalizedPayload = normalizedBookingPayload(parsed.input);
+  const prior = idempotencyByRequestId.get(parsed.input.request_id);
+  if (prior) {
+    if (prior.normalizedPayload === normalizedPayload) {
+      return prior.successJson;
+    }
+    return JSON.stringify(errorResponse("DUPLICATE_REQUEST", "request_id уже связан с другим нормализованным payload"));
+  }
+
+  const confirmation = confirmationsById.get(parsed.input.confirmation_id);
+  if (!confirmation || confirmation.consumed || confirmation.normalizedPayload !== normalizedPayload) {
+    return JSON.stringify(errorResponse("CONFIRMATION_REQUIRED", "Требуется действительное одноразовое подтверждение человека"));
+  }
+
+  const service = SYNTHETIC_SERVICES.find(({ service_id }) => service_id === parsed.input.service_id);
+  if (!service) {
+    return JSON.stringify(errorResponse("SERVICE_NOT_FOUND", "Синтетическая услуга не найдена"));
+  }
+  if (!service.available) {
+    return JSON.stringify(errorResponse("SERVICE_UNAVAILABLE", "Синтетическая услуга недоступна для записи"));
+  }
+  if (Date.parse(parsed.input.slot_start) < currentInstant().getTime()) {
+    return JSON.stringify(errorResponse("SLOT_IN_PAST", "Нельзя создать запись на прошедший интервал"));
+  }
+  const slot = SYNTHETIC_AVAILABILITY[parsed.input.slot_start.slice(0, 10)]?.[service.service_id]
+    ?.find(({ slot_start }) => slot_start === parsed.input.slot_start);
+  if (!slot || bookingsBySlot.has(parsed.input.slot_start)) {
+    return JSON.stringify(errorResponse("SLOT_UNAVAILABLE", "Выбранный интервал больше не доступен"));
+  }
+
+  // Synchronous critical section: check, booking, idempotency and consumption stay contiguous.
+  const successJson = JSON.stringify({
+    ok: true,
+    data: {
+      booking_id: nextUuidV4(),
+      status: "confirmed",
+      service: { service_id: service.service_id, name: service.name, duration_minutes: service.duration_minutes },
+      slot_start: slot.slot_start,
+      local_time: slot.local_time,
+      timezone: slot.timezone,
+    },
+  });
+  bookingsBySlot.set(parsed.input.slot_start, successJson);
+  idempotencyByRequestId.set(parsed.input.request_id, { normalizedPayload, successJson });
+  confirmation.consumed = true;
+  return successJson;
+}
+
+const createBookingToolDefinition = {
+  name: "create_booking",
+  description: "Создаёт только синтетическую запись после одноразового UI-подтверждения человека.",
+  inputSchema: {
+    type: "object",
+    additionalProperties: false,
+    required: CREATE_BOOKING_KEYS,
+    properties: {
+      service_id: { type: "string", minLength: 1 },
+      slot_start: { type: "string", format: "date-time", pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?[+-](?:0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$" },
+      timezone: { const: JERUSALEM_TIMEZONE },
+      customer_label: { const: "demo-customer-1" },
+      confirmation_id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+      request_id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+    },
+  },
+  annotations: { readOnlyHint: false, untrustedContentHint: false },
+  execute: createBooking,
+};
+
 const searchServicesToolDefinition = {
   name: "search_services",
   description: "Возвращает доступные услуги из синтетического тестового каталога: стабильный идентификатор, название, длительность, цену, валюту и доступность.",
@@ -242,10 +392,12 @@ async function registerTools() {
   try {
     await document.modelContext.registerTool(searchServicesToolDefinition);
     await document.modelContext.registerTool(checkAvailabilityToolDefinition);
+    await document.modelContext.registerTool(createBookingToolDefinition);
     verifyButton.disabled = false;
     verifyAvailabilityButton.disabled = false;
     verifyUnavailableButton.disabled = false;
-    setStatus("WebMCP доступен: search_services и check_availability зарегистрированы и готовы к проверке.", "ready");
+    createBookingButton.disabled = false;
+    setStatus("WebMCP доступен: три synthetic-инструмента зарегистрированы и готовы к проверке.", "ready");
   } catch (error) {
     setStatus(`WebMCP недоступен для регистрации: ${error.message}`, "error");
     resultElement.textContent = "Инструменты не зарегистрированы; проверка не выполнялась.";
@@ -343,8 +495,46 @@ async function verifyUnavailableServiceTool() {
   }
 }
 
+async function createSyntheticBookingFromUi() {
+  const approved = window.confirm("Создать одну синтетическую запись на 2099-05-01 09:00? Реальные данные не используются.");
+  if (!approved) {
+    bookingResultElement.textContent = "Человек отменил действие: confirmation_id не создан, WebMCP не вызван.";
+    return;
+  }
+
+  createBookingButton.disabled = true;
+  bookingResultElement.textContent = "Получаем create_booking через getTools()…";
+  try {
+    const request = {
+      service_id: "demo-haircut-30",
+      slot_start: "2099-05-01T09:00:00+03:00",
+      timezone: JERUSALEM_TIMEZONE,
+      customer_label: "demo-customer-1",
+      request_id: nextUuidV4(),
+    };
+    request.confirmation_id = issueConfirmation(request);
+    const tools = await document.modelContext.getTools();
+    const tool = tools.find(({ name }) => name === "create_booking");
+    if (!tool) {
+      throw new Error("create_booking отсутствует в результате document.modelContext.getTools().");
+    }
+    const rawResult = await document.modelContext.executeTool(tool, JSON.stringify(request));
+    const structuredResult = JSON.parse(rawResult);
+    if (structuredResult.ok) {
+      confirmedBookingCount += 1;
+      confirmedBookingCountElement.textContent = String(confirmedBookingCount);
+    }
+    bookingResultElement.textContent = JSON.stringify(structuredResult, null, 2);
+  } catch (error) {
+    bookingResultElement.textContent = `Создание через WebMCP не выполнено: ${error.message}`;
+  } finally {
+    createBookingButton.disabled = false;
+  }
+}
+
 renderCatalog();
 verifyButton.addEventListener("click", verifyTool);
 verifyAvailabilityButton.addEventListener("click", verifyAvailabilityTool);
 verifyUnavailableButton.addEventListener("click", verifyUnavailableServiceTool);
+createBookingButton.addEventListener("click", createSyntheticBookingFromUi);
 registerTools();
