@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebMCP Stage 0 — search_services</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="page">
+    <p class="eyebrow">WebMCP Challenge · этап 0</p>
+    <h1>Синтетический каталог услуг</h1>
+    <p class="intro">Один read-only инструмент: <code>search_services</code>. Данные существуют только для этого демо.</p>
+
+    <section class="panel" aria-labelledby="status-heading">
+      <h2 id="status-heading">Статус WebMCP</h2>
+      <p id="webmcp-status" data-status="pending" role="status">Проверяем поддержку WebMCP…</p>
+    </section>
+
+    <section class="panel" aria-labelledby="catalog-heading">
+      <h2 id="catalog-heading">Каталог</h2>
+      <div id="catalog" class="catalog" aria-live="polite"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="verify-heading">
+      <h2 id="verify-heading">Проверка реального вызова</h2>
+      <p>Кнопка получает зарегистрированный инструмент через <code>getTools()</code> и вызывает его через <code>executeTool()</code>. Внутренняя функция каталога здесь не вызывается напрямую.</p>
+      <button id="verify-tool" type="button" disabled>Проверить search_services через WebMCP</button>
+      <p>Реальные выполнения через WebMCP: <strong id="real-execution-count">0</strong></p>
+      <pre id="tool-result" aria-live="polite">Ожидание проверки.</pre>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
