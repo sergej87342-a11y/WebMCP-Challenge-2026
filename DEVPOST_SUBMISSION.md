@@ -114,7 +114,7 @@ Open `http://127.0.0.1:8080/`.
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
-node --check app.js
+node --check public/app.js
 python3 -m py_compile server.py tests/*.py
 ```
 

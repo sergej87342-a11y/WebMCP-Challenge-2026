@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-APP = ROOT / "app.js"
+APP = ROOT / "public" / "app.js"
 RUNNER = ROOT / "tests" / "run_check_availability.js"
 BOUNDARY_RUNNER = ROOT / "tests" / "run_webmcp_boundary.js"
 UNAVAILABLE_UI_RUNNER = ROOT / "tests" / "run_unavailable_ui_boundary.js"
@@ -208,7 +208,7 @@ class CheckAvailabilityContractTests(unittest.TestCase):
 class CheckAvailabilityWebMCPStructureTests(unittest.TestCase):
     def setUp(self) -> None:
         self.app = APP.read_text(encoding="utf-8")
-        self.index = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.index = (ROOT / "public" / "index.html").read_text(encoding="utf-8")
 
     def test_webmcp_definition_is_strict_and_read_only(self) -> None:
         self.assertRegex(self.app, r'name\s*:\s*["\']check_availability["\']')

@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-APP = ROOT / "app.js"
+APP = ROOT / "public" / "app.js"
 RUNNER = ROOT / "tests" / "run_create_booking.js"
 UI_RUNNER = ROOT / "tests" / "run_create_booking_ui_boundary.js"
 

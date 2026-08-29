@@ -86,7 +86,7 @@ Then open:
 http://127.0.0.1:8080/
 ```
 
-The bundled server is for local demonstration only. It serves the repository directory and must not be exposed directly on a public network.
+The bundled server is for local demonstration only. It serves only the `public/` browser assets and must not be exposed directly on a public network.
 
 ## Test with Chrome and WebMCP
 
@@ -115,7 +115,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
 Run static syntax checks:
 
 ```bash
-node --check app.js
+node --check public/app.js
 python3 -m py_compile server.py tests/*.py
 ```
 

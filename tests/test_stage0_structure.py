@@ -7,17 +7,18 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+PUBLIC = ROOT / "public"
 
 
 class Stage0StructureTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.index = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.app = (ROOT / "app.js").read_text(encoding="utf-8")
+        self.index = (PUBLIC / "index.html").read_text(encoding="utf-8")
+        self.app = (PUBLIC / "app.js").read_text(encoding="utf-8")
 
     def test_required_static_files_are_present_and_linked(self) -> None:
-        self.assertTrue((ROOT / "index.html").is_file())
-        self.assertTrue((ROOT / "styles.css").is_file())
-        self.assertTrue((ROOT / "app.js").is_file())
+        self.assertTrue((PUBLIC / "index.html").is_file())
+        self.assertTrue((PUBLIC / "styles.css").is_file())
+        self.assertTrue((PUBLIC / "app.js").is_file())
         self.assertTrue((ROOT / "server.py").is_file())
         self.assertIn('href="styles.css"', self.index)
         self.assertIn('src="app.js"', self.index)
