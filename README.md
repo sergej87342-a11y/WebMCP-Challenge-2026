@@ -137,3 +137,7 @@ git diff --check
 ## Repository scope
 
 This is an independent contest demo. It does not connect to, read from, or modify `ManicureBookingBot-HE`, `HairBookingBot-HE`, or `FleetOfBots`.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
