@@ -1,122 +1,106 @@
-# CHECKPOINT — этап 1
+# CHECKPOINT — verified production demo
 
-Дата: 2026-08-28 UTC.
-Статус этапа 1: `VERIFIED`.
-Решение: `GO`.
+Date: 2026-08-29 UTC.
+Status: `VERIFIED`.
+Decision: `GO` for production demo recording.
 
-## Уже зафиксировано
+## Current repository state
 
-- Создано отдельное рабочее пространство конкурса.
-- Определён один вертикальный сценарий.
-- Зафиксированы три инструмента MVP.
-- Основные проекты объявлены защищёнными от изменений.
-- Бюджет до PoC равен нулю.
+- Current HEAD: `612b3a65237d56aeee92245495b2b5c74dd053aa` (`docs: record verified production deployment`).
+- Repository: `sergej87342-a11y/WebMCP-Challenge-2026`.
+- Visibility: `PRIVATE`.
+- The source repository has not been made public.
+- Git history has been rewritten to remove the personal email from reachable commit metadata.
+- Reachable commits use the GitHub noreply identity; the author and committer name remains `Sergej`.
+- An external history backup bundle was created, checksum-verified, and retained outside the repository.
+- `LICENSE` contains the MIT License.
 
-## Результат этапа 0
+## Live deployment
 
-Минимальная локальная страница с одним WebMCP-инструментом `search_services` успешно прошла реальную проверку в Windows Chrome 151 через SSH-туннель localhost. Каталог содержит только синтетические данные; инструмент объявлен read-only.
+Live URL:
 
-## Доказательство реального браузерного вызова
+```text
+https://webmcp-challenge-2026.sergej87342.workers.dev/
+```
 
-- Ручная проверка выполнена в Windows Chrome 151 через SSH-туннель.
-- Страница открылась по адресу `http://127.0.0.1:8080/`.
-- `search_services` зарегистрирован WebMCP.
-- Инструмент получен через `document.modelContext.getTools()`.
-- Инструмент вызван через `document.modelContext.executeTool()`.
-- Счётчик реальных выполнений показал ровно `1`.
-- Результат содержал две доступные синтетические услуги: `demo-haircut-30` и `demo-color-90`.
-- Недоступная `demo-consultation-15` в результат не вошла.
-- Ошибок в интерфейсе во время проверки не обнаружено.
+Hosting:
 
-Это подтверждает реальное браузерное выполнение `search_services`, а не offline-имитацию.
+- Cloudflare Workers Static Assets.
+- The Cloudflare GitHub integration is limited to this `WebMCP-Challenge-2026` repository.
+- Deployment serves the `public/` static asset directory only.
 
-## Результат этапа 1 — `check_availability`
+Production verification completed:
 
-Этап 1 успешно проверен вручную в Windows Chrome 151 через SSH-туннель. Инструмент `check_availability` использует только синтетический каталог и синтетическое расписание; он read-only, не резервирует слот и не меняет состояние.
+- HTTPS and TLS work without certificate errors.
+- Required response headers are present:
+  - `Origin-Agent-Cluster: ?1`
+  - `Permissions-Policy: tools=(self)`
+  - `Cache-Control: no-store`
+- Live `index.html`, `app.js`, and `styles.css` match local `public/` assets by SHA-256.
+- Internal files, source documents, test files, Git metadata, deployment configuration, and directory listings are not served.
+- `public/_headers` configures the required Cloudflare response headers; it is not publicly served.
 
-### Доказательство реальных браузерных вызовов
+## Verified public WebMCP journey
 
-- `search_services` продолжает выполняться через `document.modelContext.getTools()` и `document.modelContext.executeTool()`.
-- Успешный `check_availability` вызван через тот же WebMCP-путь; счётчик успешных вызовов показал `1`.
-- Успешный ответ вернул `ok: true`, `demo-haircut-30`, дату `2099-05-01`, `Asia/Jerusalem` и интервалы `09:00` и `10:00`.
-- Отдельный ошибочный WebMCP-вызов для `demo-consultation-15` вернул `ok: false` и `error.code: SERVICE_UNAVAILABLE`.
-- Счётчик подтверждённых ошибочных WebMCP-вызовов показал `1`.
-- В ошибочном ответе поле `data.slots` отсутствовало.
-- Полный автоматический набор после исправления: `21` тест, `OK`.
+The public scenario was completed successfully on the live URL:
 
-### Найденный и исправленный WebMCP boundary-дефект
+1. `search_services` returned synthetic available services.
+2. `check_availability` returned available times for the selected service.
+3. The user selected `09:00` in `Asia/Jerusalem`.
+4. The user explicitly accepted the confirmation dialog.
+5. `create_booking` created a synthetic booking with a UUID v4 `booking_id`.
+6. The confirmed booking counter became `1`.
+7. A repeated confirmed attempt for the same slot was rejected with the honest conflict result.
+8. The counter remained `1`; no false success or second booking was created.
 
-- `document.modelContext.executeTool()` получает JSON-строку, но WebMCP передаёт handler-у уже разобранный объект аргументов.
-- Первоначальный handler `check_availability` выполнял повторный `JSON.parse` над объектом и возвращал `INVALID_INPUT`; UI правильно не засчитывал такой ответ как успех.
-- Handler исправлен так, чтобы валидировать полученный объект напрямую. Добавлен regression-тест границы `registerTool → executeTool → handler` для успешного и ошибочного сценариев.
+## Product and safety boundaries
 
-## Результат этапа 1 — `create_booking`
+- The demo uses only synthetic services, schedule data, and booking state.
+- No real customer names, phone numbers, email addresses, addresses, payments, or salon records are accepted or stored.
+- `search_services` and `check_availability` are read-only.
+- `create_booking` requires a UI-issued one-time `confirmation_id` after explicit human approval.
+- `request_id` provides idempotent replay for the same normalized payload.
+- State is module-level in-memory state for one page; reload clears bookings, confirmations, and idempotency records.
+- No cross-tab or cross-process atomicity guarantee is claimed.
 
-Статус первого synthetic write-среза `create_booking`: `VERIFIED`. Ручная проверка выполнена в Windows Chrome 151 через SSH-туннель localhost; вызов прошёл через фактическую WebMCP-границу, а не через прямой вызов handler-а.
+## Current verification suite
 
-### Доказательство реальных браузерных вызовов
+The following checks completed successfully at this checkpoint:
 
-- После явного `window.confirm` с действием «ОК» UI получил `create_booking` через `document.modelContext.getTools()` и вызвал его через `document.modelContext.executeTool()`.
-- Первый подтверждённый вызов вернул `ok: true`, UUID v4 `booking_id`, `status: "confirmed"` и `slot_start: "2099-05-01T09:00:00+03:00`; счётчик подтверждённых записей стал `1`.
-- Второй подтверждённый вызов на тот же слот вернул `ok: false` и `error.code: "SLOT_UNAVAILABLE"`; счётчик остался `1`.
-- После reload страницы и действия «Отмена» в `window.confirm` счётчик остался `0`; `confirmation_id` не был создан и WebMCP не вызывался.
-- Полный автоматический набор для трёх инструментов: `31` тест, `OK`.
+```text
+42 tests — OK
+node --check public/app.js — OK
+PYTHONDONTWRITEBYTECODE=1 python3 -m py_compile server.py tests/*.py — OK
+git diff --check — OK
+```
 
-## Результат этапа 2 — цельный пользовательский сценарий
+## Contest documentation
 
-Статус этапа 2: `VERIFIED`. Ручная проверка выполнена в Windows Chrome 151 через SSH-туннель localhost.
+- `README.md` and `DEVPOST_SUBMISSION.md` have been updated with the live URL and verified production deployment facts.
+- The live URL is recorded in both documents.
+- The Demo Video URL remains `TBD`.
+- The demo video must remain below three minutes, include a clear working-project demonstration, and include English audio.
 
-### Доказательство реального пользовательского WebMCP-сценария
+## Exact continuation point — demo video recording
 
-- Product-first экран понятен; основной journey расположен выше закрытого блока `WebMCP technical proof / Техническая проверка`.
-- CTA `Find available services / Найти услуги` получил `search_services` через `document.modelContext.getTools()` и вызвал его через `document.modelContext.executeTool()`; UI показал две возвращённые доступные услуги.
-- После выбора `demo-haircut-30` UI вызвал `check_availability` через тот же WebMCP-путь и показал возвращённые слоты `09:00` и `10:00` в `Asia/Jerusalem`.
-- После выбора `09:00` UI показал резюме и активировал кнопку подтверждения.
-- После явного `window.confirm` с действием «ОК» UI вызвал `create_booking`, получил confirmed запись с `booking_id`, а счётчик стал `1`.
-- Повторная подтверждённая попытка на тот же слот показала `This time was just taken`; новая запись не создана, счётчик остался `1`.
-- Полный автоматический набор после Stage 2: `37` тестов, `OK`.
+The English video scenario is ready:
 
-### Зафиксированная граница этапа 2
+- Voice-over length: `286` words.
+- Target finished duration: `2:25–2:30`.
+- The script demonstrates the live public WebMCP journey, explicit human confirmation, and the honest slot-conflict result.
 
-- Stage 2 не добавлял WebMCP-инструменты, не менял `CONTRACTS.md`, input/output schemas или проверенные handlers.
-- Сохраняются только synthetic data, отсутствие PII, module-level in-memory storage одной страницы, намеренный reset после reload и отсутствие межвкладочной/межпроцессной гарантии.
+Next step:
 
-## Зафиксированные ограничения
+1. Open Clipchamp and create a new video.
+2. Record a clean screen of the public scenario at the live URL.
+3. Add the prepared English synthetic voice-over.
+4. Before recording, close Gmail, Cloudflare, and unrelated browser tabs.
+5. Reload the site until the booking counter is `0`.
+6. Enable full-screen mode with `F11` before capturing the journey.
+7. Do not show personal data, email, other projects, dashboards, credentials, or terminal windows.
 
-- Нет секретов, персональных данных, реальной базы записей, реальных имён, телефонов, email или адресов.
-- Используются только синтетические данные и синтетическое расписание.
-- `search_services` и `check_availability` остаются read-only; они не резервируют слоты и не меняют состояние.
-- `create_booking` изменяет только module-level in-memory state одной страницы; reload намеренно очищает bookings, idempotency и confirmations.
-- Между вкладками и процессами атомарность не гарантируется.
-- Не покупать сервисы и не подключать Telegram, рекламу, видео или дизайн вне утверждённого MVP.
-- Commit и push не выполняются без отдельного запроса, проверки секретов и явной фиксации результата.
+## Deferred work
 
-## Условие завершения этапа 0
-
-- Один инструмент реально вызван, а не имитирован.
-- Результат подтверждён в Windows Chrome 151 через SSH-туннель localhost.
-- Нет секретов и реальных данных.
-- Принято и записано решение `GO`.
-
-## Контрактный этап
-
-- Проектирование контрактов `check_availability` и `create_booking` завершено.
-- Контракты находятся в `CONTRACTS.md`.
-- `check_availability` и `create_booking` реализованы и реально проверены в Chrome.
-
-## Обязательные решения для реализации
-
-- Часовой пояс принимается только как строгое значение `Asia/Jerusalem`.
-- Первый write-срез использует только module-level in-memory storage одной страницы; после reload он очищается, а между вкладками и процессами атомарность не гарантируется.
-- `booking_id`, `request_id` и `confirmation_id` имеют канонический UUID v4-формат; schema `create_booking` требует все шесть полей и запрещает неизвестные через `additionalProperties: false`.
-- `create_booking` объявляется только с `readOnlyHint: false` и `untrustedContentHint: false`.
-- `customer_name` отсутствует; допустим только `customer_label: "demo-customer-1"`, поэтому реальные персональные данные не принимаются.
-- UI выдаёт одноразовый `confirmation_id` только после явного действия человека; он связан с нормализованным payload, погашается при успехе, а повторное/чужое использование возвращает `CONFIRMATION_REQUIRED`.
-- Приоритет обработки: `INVALID_INPUT`, затем сохранённый idempotent success или `DUPLICATE_REQUEST`, затем `CONFIRMATION_REQUIRED`, проверка услуги, `SLOT_IN_PAST` и `SLOT_UNAVAILABLE`.
-- Внутри одной страницы критическая секция без `await` объединяет slot check, booking write, idempotency save и consumption confirmation; между вкладками и процессами гарантий нет.
-- Idempotent повтор с тем же нормализованным payload возвращает исходный успех; иной payload с тем же `request_id` возвращает `DUPLICATE_REQUEST`.
-- Первый write-срез `create_booking` реализован и verified; дальнейшие write-функции не добавлять без отдельного запроса.
-
-## Следующая точка
-
-`create_booking` завершён и verified. Следующая работа должна оставаться в границах утверждённого MVP и требовать отдельного запроса.
+- Record and publish the public demo video.
+- Decide separately whether and when to make the source repository public for contest submission.
+- Do not add production booking features without a separate request and privacy/security review.
