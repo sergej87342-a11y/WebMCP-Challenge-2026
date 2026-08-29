@@ -25,6 +25,7 @@ PRIVATE_PATHS = (
     "/SECURITY.md",
     "/MEMORY.md",
     "/tests/test_create_booking.py",
+    "/_headers",
     "/../server.py",
     "/%2e%2e/server.py",
     "/%2E%2E%2Fserver.py",
@@ -70,10 +71,21 @@ class PublicServerTests(unittest.TestCase):
                 status, _, _ = self.request(path)
                 self.assertIn(status, (403, 404))
 
-    def test_public_directory_has_only_the_three_canonical_assets(self) -> None:
+    def test_cloudflare_headers_file_is_exact(self) -> None:
+        self.assertEqual(
+            (server.PUBLIC_ROOT / "_headers").read_text(encoding="utf-8").splitlines(),
+            [
+                "/*",
+                "  Origin-Agent-Cluster: ?1",
+                "  Permissions-Policy: tools=(self)",
+                "  Cache-Control: no-store",
+            ],
+        )
+
+    def test_public_directory_has_only_deployment_assets_and_cloudflare_headers(self) -> None:
         self.assertEqual(
             sorted(path.relative_to(server.PUBLIC_ROOT).as_posix() for path in server.PUBLIC_ROOT.rglob("*") if path.is_file()),
-            ["app.js", "index.html", "styles.css"],
+            ["_headers", "app.js", "index.html", "styles.css"],
         )
         for filename in ("index.html", "app.js", "styles.css"):
             self.assertFalse((ROOT / filename).exists(), filename)

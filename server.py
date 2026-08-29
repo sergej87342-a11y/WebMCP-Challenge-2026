@@ -8,12 +8,19 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from os import PathLike
 from pathlib import Path
+from urllib.parse import urlsplit
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 PUBLIC_ROOT = PROJECT_ROOT / "public"
 
 
 class WebMCPDemoHandler(SimpleHTTPRequestHandler):
+    def send_head(self):
+        if urlsplit(self.path).path == "/_headers":
+            self.send_error(404, "Deployment configuration is not served locally")
+            return None
+        return super().send_head()
+
     def list_directory(self, path: str | PathLike[str]):
         self.send_error(404, "Directory listing is disabled")
         return None
