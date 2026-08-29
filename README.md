@@ -1,6 +1,8 @@
 # WebMCP Salon Booking Demo
 
-> **Live Demo:** `TBD — not deployed yet`
+> **Live Demo:** https://webmcp-challenge-2026.sergej87342.workers.dev/
+>
+> **Hosting:** Cloudflare Workers Static Assets (production commit `e04b2ccc9061341e4469150f62f611c5b2252cfa`)
 >
 > **Demo Video:** `TBD — not recorded yet`
 
@@ -88,6 +90,18 @@ http://127.0.0.1:8080/
 
 The bundled server is for local demonstration only. It serves only the `public/` browser assets and must not be exposed directly on a public network.
 
+## Production testing
+
+The live deployment is hosted by Cloudflare Workers Static Assets:
+
+```text
+https://webmcp-challenge-2026.sergej87342.workers.dev/
+```
+
+HTTPS and TLS, the required WebMCP response headers, and the SHA-256 equality of the deployed `index.html`, `app.js`, and `styles.css` against `public/` were verified for production commit `e04b2ccc9061341e4469150f62f611c5b2252cfa`. Service paths and source documents are not served by the deployment.
+
+For a manual public check, open the URL in Chrome with WebMCP enabled, then follow the product journey: find a service, select a returned time, explicitly confirm the booking, and repeat the confirmed attempt for that slot. The verified public run created one UUID v4 booking; the repeated confirmed attempt was rejected and the counter remained `1`.
+
 ## Test with Chrome and WebMCP
 
 1. Use Google Chrome 149 or later.
@@ -132,7 +146,7 @@ git diff --check
 - There is no database and no guarantee of atomicity between browser tabs or processes.
 - There is no authentication, payment, notification, real salon integration, or Telegram integration.
 - The only supported timezone is `Asia/Jerusalem`.
-- This repository currently has no public deployment, public license file, or demo video. The placeholders at the top will be updated only after those separate decisions are approved.
+- The live demo is deployed on Cloudflare Workers Static Assets. The source repository remains PRIVATE, and no demo video has been recorded yet.
 
 ## Repository scope
 

@@ -1,6 +1,6 @@
 # Devpost Submission Draft — WebMCP Salon Booking Demo
 
-> This is an English draft for the submission form. Replace only the marked `TBD` fields after the separate hosting, license, and video decisions are approved.
+> This is an English draft for the submission form. The live deployment is verified; only the marked Demo Video `TBD` remains to be replaced after recording.
 
 ## Project name
 
@@ -12,7 +12,7 @@ A synthetic booking flow where agents can search and check availability, while t
 
 ## Live demo
 
-`TBD — public live URL has not been approved or deployed.`
+https://webmcp-challenge-2026.sergej87342.workers.dev/
 
 ## Demo video
 
@@ -37,11 +37,11 @@ The app returns a UUID v4 booking ID after a successful synthetic booking. A rep
 
 ## How we built it
 
-The project is a dependency-free HTML, CSS, and JavaScript application served locally by a small Python standard-library server.
+The project is a dependency-free HTML, CSS, and JavaScript application. Cloudflare Workers Static Assets serves only the `public/` deployment directory; the bundled Python standard-library server remains for local verification.
 
 The three tools are registered with `document.modelContext.registerTool()`. The interface uses `document.modelContext.getTools()` to discover tools and `document.modelContext.executeTool()` to invoke them. The tool handlers return structured JSON strings at the WebMCP execution boundary.
 
-Automated tests cover the tool contracts, strict input validation, read/write boundaries, idempotency, confirmation behavior, slot conflicts, the WebMCP execution boundary, and the product journey. The current suite contains 37 tests.
+Automated tests cover the tool contracts, strict input validation, read/write boundaries, idempotency, confirmation behavior, slot conflicts, the WebMCP execution boundary, the product journey, public asset isolation, Cloudflare response-header configuration, and the Workers static-assets configuration. The current suite contains 42 tests.
 
 ## How we used WebMCP
 
@@ -77,7 +77,9 @@ The other challenge was making the write operation honest in a demo. The project
 - One-time confirmation bound to the exact normalized payload.
 - Idempotent booking requests that replay the original successful response without creating duplicates.
 - A truthful conflict result when a selected slot has already been taken.
-- Manual verification in Chrome with WebMCP enabled, plus 37 automated tests.
+- A verified public deployment on Cloudflare Workers Static Assets: HTTPS and TLS passed, the required response headers were present, deployed browser assets matched `public/` by SHA-256, and service paths were not served.
+- A manual public WebMCP run completed the full journey: one UUID v4 booking was created after explicit human confirmation; a repeated confirmed attempt for the same slot was rejected and the counter remained `1`.
+- Manual verification in Chrome with WebMCP enabled, plus 42 automated tests.
 
 ## What we learned
 
@@ -89,7 +91,7 @@ We also learned that an apparently healthy no-input WebMCP call does not prove a
 
 This contest MVP intentionally stops before production booking features. Future work would require separate product, privacy, security, and deployment decisions before adding a database, authentication, real customer data, payments, notifications, or integration with a real salon system.
 
-Before contest submission, the remaining packaging work is to approve a license, complete a safe public deployment, publish a public repository if approved, record a short demo video, and replace the `TBD` links above. None of those steps are implemented by this draft.
+Before contest submission, the remaining packaging work is to record a short public demo video and, if approved, publish the source repository. The live deployment is already in place; the `TBD` video link above remains unimplemented.
 
 ## Testing instructions
 
@@ -100,6 +102,10 @@ python3 server.py --host 127.0.0.1 --port 8080
 ```
 
 Open `http://127.0.0.1:8080/`.
+
+### Production URL
+
+Open `https://webmcp-challenge-2026.sergej87342.workers.dev/` in Chrome with WebMCP enabled. The verified public run completed the full journey: `search_services`, `check_availability`, explicit human confirmation, then `create_booking`. A repeated confirmed attempt for the same slot was rejected and did not increase the booking counter.
 
 ### Chrome with WebMCP
 
@@ -135,4 +141,5 @@ python3 -m py_compile server.py tests/*.py
 - Bookings, idempotency records, and confirmation tokens exist only in module-level in-memory state for one page and are cleared on reload.
 - There is no database and no cross-tab or cross-process atomicity guarantee.
 - The only supported timezone is `Asia/Jerusalem`.
-- No public live URL, public repository visibility change, open-source license file, or video has been created by this task.
+- A live URL is deployed on Cloudflare Workers Static Assets. The source repository remains PRIVATE; a public source-repository decision has not been made by this task.
+- The Demo Video URL remains `TBD`.
