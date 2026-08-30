@@ -1,6 +1,6 @@
 # Devpost Submission Draft — WebMCP Salon Booking Demo
 
-> This is an English draft for the submission form. The live deployment is verified; only the marked Demo Video `TBD` remains to be replaced after recording.
+> This is the verified English draft for the submission form. The live deployment, public source repository, and public demo video are ready.
 
 ## Project name
 
@@ -16,7 +16,7 @@ https://webmcp-challenge-2026.sergej87342.workers.dev/
 
 ## Demo video
 
-`TBD — public YouTube URL; video must be under three minutes and include audio.`
+https://youtu.be/5AZqA2jZ_Ao
 
 ## Inspiration
 
@@ -91,7 +91,7 @@ We also learned that an apparently healthy no-input WebMCP call does not prove a
 
 This contest MVP intentionally stops before production booking features. Future work would require separate product, privacy, security, and deployment decisions before adding a database, authentication, real customer data, payments, notifications, or integration with a real salon system.
 
-Before contest submission, the remaining packaging work is to record a short public demo video and, if approved, publish the source repository. The live deployment is already in place; the `TBD` video link above remains unimplemented.
+The public demo video and source repository are ready for contest submission alongside the verified live deployment.
 
 ## Testing instructions
 
@@ -141,5 +141,5 @@ python3 -m py_compile server.py tests/*.py
 - Bookings, idempotency records, and confirmation tokens exist only in module-level in-memory state for one page and are cleared on reload.
 - There is no database and no cross-tab or cross-process atomicity guarantee.
 - The only supported timezone is `Asia/Jerusalem`.
-- A live URL is deployed on Cloudflare Workers Static Assets. The source repository remains PRIVATE; a public source-repository decision has not been made by this task.
-- The Demo Video URL remains `TBD`.
+- The live URL is deployed on Cloudflare Workers Static Assets, and the source repository is public under the MIT License.
+- The public demo video is available at https://youtu.be/5AZqA2jZ_Ao.
